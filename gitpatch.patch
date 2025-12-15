@@ -1,0 +1,1194 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/LICENSE b/LICENSE
+new file mode 100644
+index 0000000000000000000000000000000000000000..91ba98f3a21392ddd8c0e375f1f01e6d85d9e623
+--- /dev/null
++++ b/LICENSE
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2024 OpenAI
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/README.md b/README.md
+index e60b29e844ee197e9b0442a69b3fd3d045a10c8c..633d003a42c1401d20212fdf27b672f3e5b317ef 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,21 @@
+-# MinecraftMod
+\ No newline at end of file
++# Old Gods Cult (Fabric 1.20.6)
++
++This early prototype lets players found cults devoted to one of the Old Gods. Drop an idol block to receive a **Cult Founder Book**, then consult it for guidance or use the `/cult` command suite to manage membership.
++
++## Core loops
++- **Idol** – place the block to register a cult site and receive the book. Destroying an idol from another cult grants reputation.
++- **Cult Founder Book** – right-click to read your current cult summary.
++- **Commands** – `/cult create <name> <god>`, `/cult join <leader-uuid>`, `/cult switch <god>`, and `/cult info` manage data until custom GUIs and rituals arrive.
++- **Persistent data** – cult membership, idol coordinates, chosen gods, and reputation are saved to world data.
++
++## Old Gods lineup
++The enum in `com.oldgods.cult.world.OldGod` includes Fimbulwinter, Surtur, Plague Queen, Bat Lord, Elder Witch, The Kitsune, Phara, and The Dark One. Each lists its cursed treasure for future content hooks.
++
++## Building
++Use the included Gradle wrapper:
++
++```sh
++./gradlew build
++```
++
++A Fabric loader-compatible jar will be produced in `build/libs`.
+diff --git a/build.gradle b/build.gradle
+new file mode 100644
+index 0000000000000000000000000000000000000000..cdc13f8c5b5628152e77237cfa70f62a2eccd2f3
+--- /dev/null
++++ b/build.gradle
+@@ -0,0 +1,88 @@
++plugins {
++	id 'fabric-loom' version '1.6-SNAPSHOT'
++	id 'maven-publish'
++}
++
++version = project.mod_version
++group = project.maven_group
++
++base {
++	archivesName = project.archives_base_name
++}
++
++repositories {
++	// Add repositories to retrieve artifacts from in here.
++	// You should only use this when depending on other mods because
++	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
++	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
++	// for more information about repositories.
++}
++
++loom {
++    splitEnvironmentSourceSets()
++
++        mods {
++                "oldgods" {
++                        sourceSet sourceSets.main
++                        sourceSet sourceSets.client
++                }
++        }
++
++}
++
++dependencies {
++	// To change the versions see the gradle.properties file
++	minecraft "com.mojang:minecraft:${project.minecraft_version}"
++	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
++	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
++
++	// Fabric API. This is technically optional, but you probably want it anyway.
++	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
++	
++}
++
++processResources {
++	inputs.property "version", project.version
++
++	filesMatching("fabric.mod.json") {
++		expand "version": project.version
++	}
++}
++
++tasks.withType(JavaCompile).configureEach {
++	it.options.release = 21
++}
++
++java {
++	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
++	// if it is present.
++	// If you remove this line, sources will not be generated.
++	withSourcesJar()
++
++	sourceCompatibility = JavaVersion.VERSION_21
++	targetCompatibility = JavaVersion.VERSION_21
++}
++
++jar {
++	from("LICENSE") {
++		rename { "${it}_${project.base.archivesName.get()}"}
++	}
++}
++
++// configure the maven publication
++publishing {
++	publications {
++		create("mavenJava", MavenPublication) {
++			artifactId = project.archives_base_name
++			from components.java
++		}
++	}
++
++	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
++	repositories {
++		// Add repositories to publish to here.
++		// Notice: This block does NOT have the same function as the block in the top level.
++		// The repositories here will be used for publishing your artifact, not for
++		// retrieving dependencies.
++	}
++}
+\ No newline at end of file
+diff --git a/gradle.properties b/gradle.properties
+new file mode 100644
+index 0000000000000000000000000000000000000000..e2a301e524e09e482e216f8e4298c1a2c2d10967
+--- /dev/null
++++ b/gradle.properties
+@@ -0,0 +1,17 @@
++# Done to increase the memory available to gradle.
++org.gradle.jvmargs=-Xmx1G
++org.gradle.parallel=true
++
++# Fabric Properties
++# check these on https://fabricmc.net/develop
++minecraft_version=1.20.6
++yarn_mappings=1.20.6+build.1
++loader_version=0.15.10
++
++# Mod Properties
++mod_version=0.1.0
++maven_group=com.oldgods
++archives_base_name=oldgods
++
++# Dependencies
++fabric_version=0.97.8+1.20.6
+
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+new file mode 100644
+index 0000000000000000000000000000000000000000..b82aa23a4f05d39d81870f8355ca43324f027298
+--- /dev/null
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -0,0 +1,7 @@
++distributionBase=GRADLE_USER_HOME
++distributionPath=wrapper/dists
++distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
++networkTimeout=10000
++validateDistributionUrl=true
++zipStoreBase=GRADLE_USER_HOME
++zipStorePath=wrapper/dists
+diff --git a/gradlew b/gradlew
+new file mode 100755
+index 0000000000000000000000000000000000000000..1aa94a4269074199e6ed2c37e8db3e0826030965
+--- /dev/null
++++ b/gradlew
+@@ -0,0 +1,249 @@
++#!/bin/sh
++
++#
++# Copyright © 2015-2021 the original authors.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      https://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++#
++
++##############################################################################
++#
++#   Gradle start up script for POSIX generated by Gradle.
++#
++#   Important for running:
++#
++#   (1) You need a POSIX-compliant shell to run this script. If your /bin/sh is
++#       noncompliant, but you have some other compliant shell such as ksh or
++#       bash, then to run this script, type that shell name before the whole
++#       command line, like:
++#
++#           ksh Gradle
++#
++#       Busybox and similar reduced shells will NOT work, because this script
++#       requires all of these POSIX shell features:
++#         * functions;
++#         * expansions «$var», «${var}», «${var:-default}», «${var+SET}»,
++#           «${var#prefix}», «${var%suffix}», and «$( cmd )»;
++#         * compound commands having a testable exit status, especially «case»;
++#         * various built-in commands including «command», «set», and «ulimit».
++#
++#   Important for patching:
++#
++#   (2) This script targets any POSIX shell, so it avoids extensions provided
++#       by Bash, Ksh, etc; in particular arrays are avoided.
++#
++#       The "traditional" practice of packing multiple parameters into a
++#       space-separated string is a well documented source of bugs and security
++#       problems, so this is (mostly) avoided, by progressively accumulating
++#       options in "$@", and eventually passing that to Java.
++#
++#       Where the inherited environment variables (DEFAULT_JVM_OPTS, JAVA_OPTS,
++#       and GRADLE_OPTS) rely on word-splitting, this is performed explicitly;
++#       see the in-line comments for details.
++#
++#       There are tweaks for specific operating systems such as AIX, CygWin,
++#       Darwin, MinGW, and NonStop.
++#
++#   (3) This script is generated from the Groovy template
++#       https://github.com/gradle/gradle/blob/HEAD/subprojects/plugins/src/main/resources/org/gradle/api/internal/plugins/unixStartScript.txt
++#       within the Gradle project.
++#
++#       You can find Gradle at https://github.com/gradle/gradle/.
++#
++##############################################################################
++
++# Attempt to set APP_HOME
++
++# Resolve links: $0 may be a link
++app_path=$0
++
++# Need this for daisy-chained symlinks.
++while
++    APP_HOME=${app_path%"${app_path##*/}"}  # leaves a trailing /; empty if no leading path
++    [ -h "$app_path" ]
++do
++    ls=$( ls -ld "$app_path" )
++    link=${ls#*' -> '}
++    case $link in             #(
++      /*)   app_path=$link ;; #(
++      *)    app_path=$APP_HOME$link ;;
++    esac
++done
++
++# This is normally unused
++# shellcheck disable=SC2034
++APP_BASE_NAME=${0##*/}
++# Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
++APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit
++
++# Use the maximum available, or set MAX_FD != -1 to use that value.
++MAX_FD=maximum
++
++warn () {
++    echo "$*"
++} >&2
++
++die () {
++    echo
++    echo "$*"
++    echo
++    exit 1
++} >&2
++
++# OS specific support (must be 'true' or 'false').
++cygwin=false
++msys=false
++darwin=false
++nonstop=false
++case "$( uname )" in                #(
++  CYGWIN* )         cygwin=true  ;; #(
++  Darwin* )         darwin=true  ;; #(
++  MSYS* | MINGW* )  msys=true    ;; #(
++  NONSTOP* )        nonstop=true ;;
++esac
++
++CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
++
++
++# Determine the Java command to use to start the JVM.
++if [ -n "$JAVA_HOME" ] ; then
++    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
++        # IBM's JDK on AIX uses strange locations for the executables
++        JAVACMD=$JAVA_HOME/jre/sh/java
++    else
++        JAVACMD=$JAVA_HOME/bin/java
++    fi
++    if [ ! -x "$JAVACMD" ] ; then
++        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
++
++Please set the JAVA_HOME variable in your environment to match the
++location of your Java installation."
++    fi
++else
++    JAVACMD=java
++    if ! command -v java >/dev/null 2>&1
++    then
++        die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
++
++Please set the JAVA_HOME variable in your environment to match the
++location of your Java installation."
++    fi
++fi
++
++# Increase the maximum file descriptors if we can.
++if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
++    case $MAX_FD in #(
++      max*)
++        # In POSIX sh, ulimit -H is undefined. That's why the result is checked to see if it worked.
++        # shellcheck disable=SC2039,SC3045
++        MAX_FD=$( ulimit -H -n ) ||
++            warn "Could not query maximum file descriptor limit"
++    esac
++    case $MAX_FD in  #(
++      '' | soft) :;; #(
++      *)
++        # In POSIX sh, ulimit -n is undefined. That's why the result is checked to see if it worked.
++        # shellcheck disable=SC2039,SC3045
++        ulimit -n "$MAX_FD" ||
++            warn "Could not set maximum file descriptor limit to $MAX_FD"
++    esac
++fi
++
++# Collect all arguments for the java command, stacking in reverse order:
++#   * args from the command line
++#   * the main class name
++#   * -classpath
++#   * -D...appname settings
++#   * --module-path (only if needed)
++#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and GRADLE_OPTS environment variables.
++
++# For Cygwin or MSYS, switch paths to Windows format before running java
++if "$cygwin" || "$msys" ; then
++    APP_HOME=$( cygpath --path --mixed "$APP_HOME" )
++    CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )
++
++    JAVACMD=$( cygpath --unix "$JAVACMD" )
++
++    # Now convert the arguments - kludge to limit ourselves to /bin/sh
++    for arg do
++        if
++            case $arg in                                #(
++              -*)   false ;;                            # don't mess with options #(
++              /?*)  t=${arg#/} t=/${t%%/*}              # looks like a POSIX filepath
++                    [ -e "$t" ] ;;                      #(
++              *)    false ;;
++            esac
++        then
++            arg=$( cygpath --path --ignore --mixed "$arg" )
++        fi
++        # Roll the args list around exactly as many times as the number of
++        # args, so each arg winds up back in the position where it started, but
++        # possibly modified.
++        #
++        # NB: a `for` loop captures its iteration list before it begins, so
++        # changing the positional parameters here affects neither the number of
++        # iterations, nor the values presented in `arg`.
++        shift                   # remove old arg
++        set -- "$@" "$arg"      # push replacement arg
++    done
++fi
++
++
++# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
++DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
++
++# Collect all arguments for the java command:
++#   * DEFAULT_JVM_OPTS, JAVA_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
++#     and any embedded shellness will be escaped.
++#   * For example: A user cannot expect ${Hostname} to be expanded, as it is an environment variable and will be
++#     treated as '${Hostname}' itself on the command line.
++
++set -- \
++        "-Dorg.gradle.appname=$APP_BASE_NAME" \
++        -classpath "$CLASSPATH" \
++        org.gradle.wrapper.GradleWrapperMain \
++        "$@"
++
++# Stop when "xargs" is not available.
++if ! command -v xargs >/dev/null 2>&1
++then
++    die "xargs is not available"
++fi
++
++# Use "xargs" to parse quoted args.
++#
++# With -n1 it outputs one arg per line, with the quotes and backslashes removed.
++#
++# In Bash we could simply go:
++#
++#   readarray ARGS < <( xargs -n1 <<<"$var" ) &&
++#   set -- "${ARGS[@]}" "$@"
++#
++# but POSIX shell has neither arrays nor command substitution, so instead we
++# post-process each arg (as a line of input to sed) to backslash-escape any
++# character that might be a shell metacharacter, then use eval to reverse
++# that process (while maintaining the separation between arguments), and wrap
++# the whole thing up as a single "set" statement.
++#
++# This will of course break if any of these variables contains a newline or
++# an unmatched quote.
++#
++
++eval "set -- $(
++        printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS" |
++        xargs -n1 |
++        sed ' s~[^-[:alnum:]+,./:=@_]~\\&~g; ' |
++        tr '\n' ' '
++    )" '"$@"'
++
++exec "$JAVACMD" "$@"
+diff --git a/gradlew.bat b/gradlew.bat
+new file mode 100644
+index 0000000000000000000000000000000000000000..7101f8e4676fcad8adc961e929ea3bcb37b5262f
+--- /dev/null
++++ b/gradlew.bat
+@@ -0,0 +1,92 @@
++@rem
++@rem Copyright 2015 the original author or authors.
++@rem
++@rem Licensed under the Apache License, Version 2.0 (the "License");
++@rem you may not use this file except in compliance with the License.
++@rem You may obtain a copy of the License at
++@rem
++@rem      https://www.apache.org/licenses/LICENSE-2.0
++@rem
++@rem Unless required by applicable law or agreed to in writing, software
++@rem distributed under the License is distributed on an "AS IS" BASIS,
++@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++@rem See the License for the specific language governing permissions and
++@rem limitations under the License.
++@rem
++
++@if "%DEBUG%"=="" @echo off
++@rem ##########################################################################
++@rem
++@rem  Gradle startup script for Windows
++@rem
++@rem ##########################################################################
++
++@rem Set local scope for the variables with windows NT shell
++if "%OS%"=="Windows_NT" setlocal
++
++set DIRNAME=%~dp0
++if "%DIRNAME%"=="" set DIRNAME=.
++@rem This is normally unused
++set APP_BASE_NAME=%~n0
++set APP_HOME=%DIRNAME%
++
++@rem Resolve any "." and ".." in APP_HOME to make it shorter.
++for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
++
++@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
++set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
++
++@rem Find java.exe
++if defined JAVA_HOME goto findJavaFromJavaHome
++
++set JAVA_EXE=java.exe
++%JAVA_EXE% -version >NUL 2>&1
++if %ERRORLEVEL% equ 0 goto execute
++
++echo. 1>&2
++echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
++echo. 1>&2
++echo Please set the JAVA_HOME variable in your environment to match the 1>&2
++echo location of your Java installation. 1>&2
++
++goto fail
++
++:findJavaFromJavaHome
++set JAVA_HOME=%JAVA_HOME:"=%
++set JAVA_EXE=%JAVA_HOME%/bin/java.exe
++
++if exist "%JAVA_EXE%" goto execute
++
++echo. 1>&2
++echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
++echo. 1>&2
++echo Please set the JAVA_HOME variable in your environment to match the 1>&2
++echo location of your Java installation. 1>&2
++
++goto fail
++
++:execute
++@rem Setup the command line
++
++set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
++
++
++@rem Execute Gradle
++"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
++
++:end
++@rem End local scope for the variables with windows NT shell
++if %ERRORLEVEL% equ 0 goto mainEnd
++
++:fail
++rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
++rem the _cmd.exe /c_ return code!
++set EXIT_CODE=%ERRORLEVEL%
++if %EXIT_CODE% equ 0 set EXIT_CODE=1
++if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
++exit /b %EXIT_CODE%
++
++:mainEnd
++if "%OS%"=="Windows_NT" endlocal
++
++:omega
+diff --git a/settings.gradle b/settings.gradle
+new file mode 100644
+index 0000000000000000000000000000000000000000..eeffa7427b757673f77c0986899afcdde98caf89
+--- /dev/null
++++ b/settings.gradle
+@@ -0,0 +1,12 @@
++pluginManagement {
++        repositories {
++                maven {
++                        name = 'Fabric'
++                        url = 'https://maven.fabricmc.net/'
++                }
++                mavenCentral()
++                gradlePluginPortal()
++        }
++}
++
++rootProject.name = "oldgods"
+diff --git a/src/main/java/com/oldgods/cult/OldGodsCultMod.java b/src/main/java/com/oldgods/cult/OldGodsCultMod.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7f2aa0c675fb54b43a67346d87da6d092aecac66
+--- /dev/null
++++ b/src/main/java/com/oldgods/cult/OldGodsCultMod.java
+@@ -0,0 +1,67 @@
++package com.oldgods.cult;
++
++import com.oldgods.cult.block.IdolBlock;
++import com.oldgods.cult.command.CultCommands;
++import com.oldgods.cult.item.CultBookItem;
++import com.oldgods.cult.state.CultState;
++import net.fabricmc.api.ModInitializer;
++import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
++import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
++import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
++import net.minecraft.block.Block;
++import net.minecraft.block.Blocks;
++import net.minecraft.item.BlockItem;
++import net.minecraft.item.Item;
++import net.minecraft.item.ItemGroup;
++import net.minecraft.item.ItemStack;
++import net.minecraft.registry.Registries;
++import net.minecraft.registry.Registry;
++import net.minecraft.text.Text;
++import net.minecraft.util.Identifier;
++import net.minecraft.util.Rarity;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++
++/**
++ * Entry point for the Old Gods Cult mod. This file wires the high-level content:
++ * the idol block, the cult founder book, and command hooks that interact with persistent cult data.
++ */
++public class OldGodsCultMod implements ModInitializer {
++    public static final String MOD_ID = "oldgods";
++    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
++
++    public static final Block IDOL_BLOCK = new IdolBlock(FabricBlockSettings.copyOf(Blocks.CHISELED_BOOKSHELF).luminance(state -> 8));
++    public static final Item CULT_BOOK = new CultBookItem(new Item.Settings().maxCount(1).rarity(Rarity.UNCOMMON));
++
++    public static final ItemGroup ITEM_GROUP = FabricItemGroup.builder()
++            .icon(() -> new ItemStack(CULT_BOOK))
++            .displayName(Text.translatable("itemGroup.oldgods"))
++            .entries((displayContext, entries) -> {
++                entries.add(CULT_BOOK);
++                entries.add(IDOL_BLOCK);
++            })
++            .build();
++
++    @Override
++    public void onInitialize() {
++        LOGGER.info("Initializing Old Gods cult system");
++
++        Registry.register(Registries.ITEM_GROUP, id("core"), ITEM_GROUP);
++        Registry.register(Registries.BLOCK, id("idol"), IDOL_BLOCK);
++        Registry.register(Registries.ITEM, id("idol"), new BlockItem(IDOL_BLOCK, new Item.Settings()));
++        Registry.register(Registries.ITEM, id("cult_founder_book"), CULT_BOOK);
++
++        CultCommands.register();
++
++        PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, entity) -> {
++            if (!world.isClient && world instanceof net.minecraft.server.world.ServerWorld serverWorld && state.getBlock() instanceof IdolBlock) {
++                CultState stateManager = CultState.get(serverWorld);
++                stateManager.handleIdolDestroyed(player, pos);
++            }
++        });
++    }
++
++    public static Identifier id(String path) {
++        return new Identifier(MOD_ID, path);
++    }
++}
+diff --git a/src/main/java/com/oldgods/cult/block/IdolBlock.java b/src/main/java/com/oldgods/cult/block/IdolBlock.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a4d289b40c97a5bb570d1966dc9683afb212cc42
+--- /dev/null
++++ b/src/main/java/com/oldgods/cult/block/IdolBlock.java
+@@ -0,0 +1,37 @@
++package com.oldgods.cult.block;
++
++import com.oldgods.cult.OldGodsCultMod;
++import com.oldgods.cult.state.CultState;
++import net.minecraft.block.Block;
++import net.minecraft.block.BlockState;
++import net.minecraft.entity.LivingEntity;
++import net.minecraft.item.ItemStack;
++import net.minecraft.server.world.ServerWorld;
++import net.minecraft.world.World;
++import net.minecraft.entity.player.PlayerEntity;
++import net.minecraft.util.math.BlockPos;
++
++/**
++ * Simple block used to anchor a cult. When placed, it grants the creator a Cult Founder Book.
++ */
++public class IdolBlock extends Block {
++    public IdolBlock(Settings settings) {
++        super(settings);
++    }
++
++    @Override
++    public void onPlaced(World world, BlockPos pos, BlockState state, LivingEntity placer, ItemStack itemStack) {
++        super.onPlaced(world, pos, state, placer, itemStack);
++        if (!world.isClient && world instanceof ServerWorld serverWorld) {
++            CultState cultState = CultState.get(serverWorld);
++            cultState.registerIdol(pos, placer);
++
++            if (placer instanceof PlayerEntity player) {
++                ItemStack book = new ItemStack(OldGodsCultMod.CULT_BOOK);
++                if (!player.giveItemStack(book)) {
++                    player.dropItem(book, false);
++                }
++            }
++        }
++    }
++}
+diff --git a/src/main/java/com/oldgods/cult/command/CultCommands.java b/src/main/java/com/oldgods/cult/command/CultCommands.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..26e6058e066436716ed1941d8d2547ccee4b620b
+--- /dev/null
++++ b/src/main/java/com/oldgods/cult/command/CultCommands.java
+@@ -0,0 +1,83 @@
++package com.oldgods.cult.command;
++
++import com.mojang.brigadier.CommandDispatcher;
++import com.mojang.brigadier.arguments.StringArgumentType;
++import com.mojang.brigadier.context.CommandContext;
++import com.mojang.brigadier.exceptions.CommandSyntaxException;
++import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
++import com.oldgods.cult.state.CultState;
++import com.oldgods.cult.world.OldGod;
++import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
++import net.minecraft.command.CommandRegistryAccess;
++import net.minecraft.command.argument.UuidArgumentType;
++import net.minecraft.server.command.CommandManager;
++import net.minecraft.server.command.ServerCommandSource;
++import net.minecraft.text.Text;
++
++import java.util.Locale;
++
++/**
++ * Lightweight command layer to configure cults without a GUI yet.
++ */
++public final class CultCommands {
++    private CultCommands() {}
++
++    private static final DynamicCommandExceptionType INVALID_GOD = new DynamicCommandExceptionType(name -> Text.literal("Unknown Old God: " + name));
++
++    public static void register() {
++        CommandRegistrationCallback.EVENT.register(CultCommands::registerRoot);
++    }
++
++    private static void registerRoot(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
++        dispatcher.register(CommandManager.literal("cult")
++                .then(CommandManager.literal("create")
++                        .then(CommandManager.argument("name", StringArgumentType.greedyString())
++                                .then(CommandManager.argument("god", StringArgumentType.greedyString())
++                                        .executes(ctx -> createCult(ctx)))))
++                .then(CommandManager.literal("join")
++                        .then(CommandManager.argument("leader", UuidArgumentType.uuid())
++                                .executes(ctx -> joinCult(ctx))))
++                .then(CommandManager.literal("switch")
++                        .then(CommandManager.argument("god", StringArgumentType.greedyString())
++                                .executes(ctx -> switchGod(ctx))))
++                .then(CommandManager.literal("info")
++                        .executes(ctx -> describe(ctx))));
++    }
++
++    private static int createCult(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
++        CultState state = CultState.get(ctx.getSource().getWorld());
++        String name = StringArgumentType.getString(ctx, "name");
++        OldGod god = getGod(ctx);
++        ctx.getSource().sendFeedback(() -> state.createCult(ctx.getSource().getPlayer(), name, god), false);
++        return 1;
++    }
++
++    private static int joinCult(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
++        CultState state = CultState.get(ctx.getSource().getWorld());
++        ctx.getSource().sendFeedback(() -> state.joinCult(ctx.getSource().getPlayer(), UuidArgumentType.getUuid(ctx, "leader")), false);
++        return 1;
++    }
++
++    private static int switchGod(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
++        CultState state = CultState.get(ctx.getSource().getWorld());
++        OldGod god = getGod(ctx);
++        ctx.getSource().sendFeedback(() -> state.changeGod(ctx.getSource().getPlayer(), god), false);
++        return 1;
++    }
++
++    private static int describe(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
++        CultState state = CultState.get(ctx.getSource().getWorld());
++        ctx.getSource().sendFeedback(() -> state.describePlayerCult(ctx.getSource().getPlayer()), false);
++        return 1;
++    }
++
++    private static OldGod getGod(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
++        String input = StringArgumentType.getString(ctx, "god");
++        String normalized = input.trim().toUpperCase(Locale.ROOT).replace(' ', '_');
++        try {
++            return OldGod.valueOf(normalized);
++        } catch (IllegalArgumentException ex) {
++            throw INVALID_GOD.create(input);
++        }
++    }
++}
+diff --git a/src/main/java/com/oldgods/cult/item/CultBookItem.java b/src/main/java/com/oldgods/cult/item/CultBookItem.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1fd2746c3c10c491c40519d9ed94467aad610fed
+--- /dev/null
++++ b/src/main/java/com/oldgods/cult/item/CultBookItem.java
+@@ -0,0 +1,31 @@
++package com.oldgods.cult.item;
++
++import com.oldgods.cult.state.CultState;
++import net.minecraft.entity.player.PlayerEntity;
++import net.minecraft.item.Item;
++import net.minecraft.item.ItemStack;
++import net.minecraft.text.Text;
++import net.minecraft.util.Hand;
++import net.minecraft.util.TypedActionResult;
++import net.minecraft.world.World;
++import net.minecraft.server.world.ServerWorld;
++
++/**
++ * The Cult Founder Book is the player's UI into the cult system. For now it relays instructions and
++ * runs the same logic as the commands to initialize or configure a cult.
++ */
++public class CultBookItem extends Item {
++    public CultBookItem(Settings settings) {
++        super(settings);
++    }
++
++    @Override
++    public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
++        if (!world.isClient && world instanceof ServerWorld serverWorld) {
++            CultState state = CultState.get(serverWorld);
++            Text message = state.describePlayerCult(user);
++            user.sendMessage(message, false);
++        }
++        return TypedActionResult.success(user.getStackInHand(hand));
++    }
++}
+diff --git a/src/main/java/com/oldgods/cult/state/CultData.java b/src/main/java/com/oldgods/cult/state/CultData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3580e7d4db62036b2698a6d06e9c78c1186cea9c
+--- /dev/null
++++ b/src/main/java/com/oldgods/cult/state/CultData.java
+@@ -0,0 +1,85 @@
++package com.oldgods.cult.state;
++
++import com.oldgods.cult.world.OldGod;
++import net.minecraft.nbt.NbtCompound;
++import net.minecraft.nbt.NbtElement;
++import net.minecraft.nbt.NbtList;
++
++import java.util.HashSet;
++import java.util.Set;
++import java.util.UUID;
++
++public class CultData {
++    private final UUID leader;
++    private final Set<UUID> members = new HashSet<>();
++    private final String name;
++    private OldGod god;
++    private int reputation;
++
++    public CultData(UUID leader, String name, OldGod god) {
++        this.leader = leader;
++        this.name = name;
++        this.god = god;
++        this.members.add(leader);
++    }
++
++    public UUID leader() {
++        return leader;
++    }
++
++    public Set<UUID> members() {
++        return members;
++    }
++
++    public String name() {
++        return name;
++    }
++
++    public OldGod god() {
++        return god;
++    }
++
++    public int reputation() {
++        return reputation;
++    }
++
++    public void setGod(OldGod god) {
++        this.god = god;
++    }
++
++    public void addReputation(int amount) {
++        this.reputation += amount;
++    }
++
++    public NbtCompound toNbt() {
++        NbtCompound nbt = new NbtCompound();
++        nbt.putUuid("Leader", leader);
++        nbt.putString("Name", name);
++        nbt.putString("God", god.name());
++        nbt.putInt("Reputation", reputation);
++
++        NbtList memberList = new NbtList();
++        for (UUID member : members) {
++            NbtCompound entry = new NbtCompound();
++            entry.putUuid("Id", member);
++            memberList.add(entry);
++        }
++        nbt.put("Members", memberList);
++        return nbt;
++    }
++
++    public static CultData fromNbt(NbtCompound nbt) {
++        UUID leader = nbt.getUuid("Leader");
++        String name = nbt.getString("Name");
++        OldGod god = OldGod.valueOf(nbt.getString("God"));
++        CultData data = new CultData(leader, name, god);
++        data.reputation = nbt.getInt("Reputation");
++
++        NbtList members = nbt.getList("Members", NbtElement.COMPOUND_TYPE);
++        for (NbtElement element : members) {
++            NbtCompound entry = (NbtCompound) element;
++            data.members.add(entry.getUuid("Id"));
++        }
++        return data;
++    }
++}
+diff --git a/src/main/java/com/oldgods/cult/state/CultState.java b/src/main/java/com/oldgods/cult/state/CultState.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..21ee26fd0524811b7c6af0d08f4f0ee878048f7d
+--- /dev/null
++++ b/src/main/java/com/oldgods/cult/state/CultState.java
+@@ -0,0 +1,149 @@
++package com.oldgods.cult.state;
++
++import com.google.common.collect.BiMap;
++import com.google.common.collect.HashBiMap;
++import com.oldgods.cult.OldGodsCultMod;
++import com.oldgods.cult.world.OldGod;
++import net.minecraft.entity.LivingEntity;
++import net.minecraft.entity.player.PlayerEntity;
++import net.minecraft.nbt.NbtCompound;
++import net.minecraft.nbt.NbtElement;
++import net.minecraft.nbt.NbtList;
++import net.minecraft.registry.RegistryWrapper;
++import net.minecraft.server.world.ServerWorld;
++import net.minecraft.text.Text;
++import net.minecraft.util.math.BlockPos;
++import net.minecraft.world.PersistentState;
++import net.minecraft.world.PersistentStateManager;
++
++import java.util.HashMap;
++import java.util.Map;
++import java.util.Optional;
++import java.util.UUID;
++
++public class CultState extends PersistentState {
++    private static final Type<CultState> TYPE = new Type<>(CultState::new, CultState::fromNbt, null);
++    private static final String KEY = OldGodsCultMod.MOD_ID;
++    private final Map<UUID, CultData> cults = new HashMap<>();
++    private final BiMap<UUID, UUID> memberToCult = HashBiMap.create();
++    private final Map<BlockPos, UUID> idolLocations = new HashMap<>();
++
++    public static CultState get(ServerWorld world) {
++        PersistentStateManager manager = world.getPersistentStateManager();
++        return manager.getOrCreate(TYPE, KEY);
++    }
++
++    public static CultState fromNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
++        CultState state = new CultState();
++        NbtList cultList = nbt.getList("Cults", NbtElement.COMPOUND_TYPE);
++        for (NbtElement element : cultList) {
++            CultData data = CultData.fromNbt((NbtCompound) element);
++            state.cults.put(data.leader(), data);
++            for (UUID member : data.members()) {
++                state.memberToCult.put(member, data.leader());
++            }
++        }
++
++        NbtList idols = nbt.getList("Idols", NbtElement.COMPOUND_TYPE);
++        for (NbtElement element : idols) {
++            NbtCompound entry = (NbtCompound) element;
++            BlockPos pos = new BlockPos(entry.getInt("x"), entry.getInt("y"), entry.getInt("z"));
++            UUID leader = entry.getUuid("Leader");
++            state.idolLocations.put(pos, leader);
++        }
++        return state;
++    }
++
++    @Override
++    public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
++        NbtList cultList = new NbtList();
++        for (CultData data : cults.values()) {
++            cultList.add(data.toNbt());
++        }
++        nbt.put("Cults", cultList);
++
++        NbtList idols = new NbtList();
++        idolLocations.forEach((pos, leader) -> {
++            NbtCompound entry = new NbtCompound();
++            entry.putInt("x", pos.getX());
++            entry.putInt("y", pos.getY());
++            entry.putInt("z", pos.getZ());
++            entry.putUuid("Leader", leader);
++            idols.add(entry);
++        });
++        nbt.put("Idols", idols);
++        return nbt;
++    }
++
++    public Optional<CultData> getCult(PlayerEntity player) {
++        UUID id = memberToCult.get(player.getUuid());
++        return Optional.ofNullable(id).map(cults::get);
++    }
++
++    public Text describePlayerCult(PlayerEntity player) {
++        Optional<CultData> cult = getCult(player);
++        if (cult.isPresent()) {
++            CultData data = cult.get();
++            return Text.literal("Cult: " + data.name() + " (" + data.god().getDisplayName() + ")\nMembers: " + data.members().size() + "\nReputation: " + data.reputation());
++        }
++        return Text.literal("You do not belong to a cult yet. Use the founder book while sneaking to create one or ask a leader to invite you via /cult.");
++    }
++
++    public Text createCult(PlayerEntity player, String name, OldGod god) {
++        if (memberToCult.containsKey(player.getUuid())) {
++            return Text.literal("You already belong to a cult.");
++        }
++        if (cults.values().stream().anyMatch(c -> c.name().equalsIgnoreCase(name))) {
++            return Text.literal("A cult with that name already exists.");
++        }
++        CultData data = new CultData(player.getUuid(), name, god);
++        cults.put(data.leader(), data);
++        memberToCult.put(player.getUuid(), data.leader());
++        markDirty();
++        return Text.literal("Founded cult '" + name + "' in service of " + god.getDisplayName());
++    }
++
++    public Text joinCult(PlayerEntity requester, UUID leader) {
++        CultData data = cults.get(leader);
++        if (data == null) {
++            return Text.literal("No cult was found for that leader.");
++        }
++        memberToCult.forcePut(requester.getUuid(), leader);
++        data.members().add(requester.getUuid());
++        markDirty();
++        return Text.literal("Joined cult '" + data.name() + "'.");
++    }
++
++    public Text changeGod(PlayerEntity leader, OldGod god) {
++        CultData data = cults.get(leader.getUuid());
++        if (data == null) {
++            return Text.literal("Only cult leaders can switch gods.");
++        }
++        data.setGod(god);
++        markDirty();
++        return Text.literal("Changed patron to " + god.getDisplayName());
++    }
++
++    public void addReputation(PlayerEntity leader, int value) {
++        CultData data = cults.get(leader.getUuid());
++        if (data != null) {
++            data.addReputation(value);
++            markDirty();
++        }
++    }
++
++    public void registerIdol(BlockPos pos, LivingEntity placer) {
++        if (placer instanceof PlayerEntity player) {
++            idolLocations.put(pos.toImmutable(), player.getUuid());
++            markDirty();
++        }
++    }
++
++    public void handleIdolDestroyed(PlayerEntity player, BlockPos pos) {
++        UUID leader = idolLocations.remove(pos);
++        if (leader != null) {
++            addReputation(player, 5);
++            markDirty();
++        }
++    }
++}
+diff --git a/src/main/java/com/oldgods/cult/world/OldGod.java b/src/main/java/com/oldgods/cult/world/OldGod.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e6b5b65c81292ff988368477f8f570305bae23cf
+--- /dev/null
++++ b/src/main/java/com/oldgods/cult/world/OldGod.java
+@@ -0,0 +1,51 @@
++package com.oldgods.cult.world;
++
++import net.minecraft.text.Text;
++
++/**
++ * Represents the patron Old Gods players can align to. The enum captures basic lore
++ * and cursed treasure hints used throughout the mod.
++ */
++public enum OldGod {
++    FIMBULWINTER("Cube of Permafrost", "Shrouds the world in eternal cold and enables freezing rituals."),
++    SURTUR("Sword of Finality", "Rules over fire and endings."),
++    PLAGUE_QUEEN("Brood Emblem", "Twists nature with insect swarms."),
++    BAT_LORD("Blood Chalice", "Rewards predatory combat and blood rituals."),
++    ELDER_WITCH("Hexbound Effigy", "Fuels witchcraft and cauldrons."),
++    KITSUNE("Kitsune Mask", "Plays with illusions, charm, and foxfire."),
++    PHARA("Gilded Scarab", "Bends sand, storms, and ancient curses."),
++    DARK_ONE("Corrupted Reliquary", "Consumes light and reshapes every other treasure.");
++
++    private final String cursedTreasure;
++    private final String summary;
++
++    OldGod(String cursedTreasure, String summary) {
++        this.cursedTreasure = cursedTreasure;
++        this.summary = summary;
++    }
++
++    public String getCursedTreasure() {
++        return cursedTreasure;
++    }
++
++    public String getSummary() {
++        return summary;
++    }
++
++    public String getDisplayName() {
++        return switch (this) {
++            case FIMBULWINTER -> "Fimbulwinter";
++            case SURTUR -> "Surtur";
++            case PLAGUE_QUEEN -> "Plague Queen";
++            case BAT_LORD -> "Bat Lord";
++            case ELDER_WITCH -> "Elder Witch";
++            case KITSUNE -> "The Kitsune";
++            case PHARA -> "Phara";
++            case DARK_ONE -> "The Dark One";
++        };
++    }
++
++    public Text describe() {
++        return Text.literal(getDisplayName() + " — Cursed Treasure: " + cursedTreasure + "\n" + summary);
++    }
++}
+diff --git a/src/main/resources/assets/oldgods/blockstates/idol.json b/src/main/resources/assets/oldgods/blockstates/idol.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..935b5a8ede06fa44b534b53717bcd930d7829513
+--- /dev/null
++++ b/src/main/resources/assets/oldgods/blockstates/idol.json
+@@ -0,0 +1,5 @@
++{
++  "variants": {
++    "": { "model": "oldgods:block/idol" }
++  }
++}
+
+diff --git a/src/main/resources/assets/oldgods/lang/en_us.json b/src/main/resources/assets/oldgods/lang/en_us.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3c93d15f8f46eb51770a69b6a28bdb9630b51ed7
+--- /dev/null
++++ b/src/main/resources/assets/oldgods/lang/en_us.json
+@@ -0,0 +1,5 @@
++{
++  "itemGroup.oldgods": "Old Gods",
++  "block.oldgods.idol": "Old God Idol",
++  "item.oldgods.cult_founder_book": "Cult Founder Book"
++}
+diff --git a/src/main/resources/assets/oldgods/models/block/idol.json b/src/main/resources/assets/oldgods/models/block/idol.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..eac03514b90d97347d3799a06c64b53e1bdcad4b
+--- /dev/null
++++ b/src/main/resources/assets/oldgods/models/block/idol.json
+@@ -0,0 +1,6 @@
++{
++  "parent": "block/cube_all",
++  "textures": {
++    "all": "minecraft:block/chiseled_bookshelf"
++  }
++}
+diff --git a/src/main/resources/assets/oldgods/models/item/cult_founder_book.json b/src/main/resources/assets/oldgods/models/item/cult_founder_book.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..9574b8fc62867cbe872ca61fe5d4892345b3d399
+--- /dev/null
++++ b/src/main/resources/assets/oldgods/models/item/cult_founder_book.json
+@@ -0,0 +1,6 @@
++{
++  "parent": "item/generated",
++  "textures": {
++    "layer0": "minecraft:item/book"
++  }
++}
+diff --git a/src/main/resources/assets/oldgods/models/item/idol.json b/src/main/resources/assets/oldgods/models/item/idol.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..a4ad2e8a0bc62512d052ce0cfd8a58f24424d608
+--- /dev/null
++++ b/src/main/resources/assets/oldgods/models/item/idol.json
+@@ -0,0 +1,3 @@
++{
++  "parent": "oldgods:block/idol"
++}
+diff --git a/src/main/resources/fabric.mod.json b/src/main/resources/fabric.mod.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3f3c7db55c33b9a9534bc8a38d0847bbc71fea85
+--- /dev/null
++++ b/src/main/resources/fabric.mod.json
+@@ -0,0 +1,25 @@
++{
++  "schemaVersion": 1,
++  "id": "oldgods",
++  "version": "${version}",
++  "name": "Old Gods Cult",
++  "description": "Create idols, found cults, and pledge yourself to ancient gods.",
++  "authors": ["OpenAI Assistant"],
++  "contact": {
++    "homepage": "https://example.com",
++    "sources": "https://example.com/source"
++  },
++  "license": "MIT",
++  "icon": "assets/oldgods/icon.png",
++  "environment": "*",
++  "entrypoints": {
++    "main": [
++      "com.oldgods.cult.OldGodsCultMod"
++    ]
++  },
++  "depends": {
++    "fabricloader": ">=0.15.10",
++    "fabric": "*",
++    "minecraft": "1.20.6"
++  }
++}
+ 
+EOF
+)
