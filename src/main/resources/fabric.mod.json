@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "oldgods",
+  "version": "${version}",
+  "name": "Old Gods Cult",
+  "description": "Create idols, found cults, and pledge yourself to ancient gods.",
+  "authors": ["OpenAI Assistant"],
+  "contact": {
+    "homepage": "https://example.com",
+    "sources": "https://example.com/source"
+  },
+  "license": "MIT",
+  "icon": "assets/oldgods/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.oldgods.cult.OldGodsCultMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.10",
+    "fabric": "*",
+    "minecraft": "1.20.6"
+  }
+}
