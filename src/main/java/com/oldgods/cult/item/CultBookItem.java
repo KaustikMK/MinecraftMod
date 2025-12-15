@@ -1,6 +1,7 @@
 package com.oldgods.cult.item;
 
 import com.oldgods.cult.state.CultState;
+import com.oldgods.cult.world.OldGod;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -23,7 +24,13 @@ public class CultBookItem extends Item {
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
         if (!world.isClient && world instanceof ServerWorld serverWorld) {
             CultState state = CultState.get(serverWorld);
-            Text message = state.describePlayerCult(user);
+            Text message;
+            if (user.isSneaking()) {
+                String name = user.getName().getString() + "'s Cult";
+                message = state.createCult(user, name, OldGod.FIMBULWINTER);
+            } else {
+                message = state.describePlayerCult(user);
+            }
             user.sendMessage(message, false);
         }
         return TypedActionResult.success(user.getStackInHand(hand));
