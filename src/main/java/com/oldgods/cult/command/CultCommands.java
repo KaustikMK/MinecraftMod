@@ -31,8 +31,8 @@ public final class CultCommands {
     private static void registerRoot(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
         dispatcher.register(CommandManager.literal("cult")
                 .then(CommandManager.literal("create")
-                        .then(CommandManager.argument("name", StringArgumentType.greedyString())
-                                .then(CommandManager.argument("god", StringArgumentType.greedyString())
+                        .then(CommandManager.argument("name", StringArgumentType.string())
+                                .then(CommandManager.argument("god", StringArgumentType.string())
                                         .executes(ctx -> createCult(ctx)))))
                 .then(CommandManager.literal("join")
                         .then(CommandManager.argument("leader", UuidArgumentType.uuid())
